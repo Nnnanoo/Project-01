@@ -1,0 +1,239 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Auth Models (NextAuth) ───────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts Account[]
+  sessions Session[]
+  brands   Brand[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── Brand ────────────────────────────────────────────────────────────────────
+
+model Brand {
+  id          String  @id @default(cuid())
+  userId      String
+  name        String
+  industry    String?
+  country     String?
+  description String? @db.Text
+  slug        String  @unique
+
+  targetAudience   String?
+  competitors      String[]
+  personality      String[]
+  toneOfVoice      String?
+  mission          String?  @db.Text
+  vision           String?  @db.Text
+
+  instagramUsername String?
+  mainPlatform      String?
+  marketingGoals    String[]
+  contentTypes      String[]
+  postingFrequency  String?
+
+  preferredColors  String[]
+  typographyStyle  String?
+  designStyle      String?
+  contentStyle     String?
+  exampleBrands    String[]
+
+  onboardingCompleted Boolean  @default(false)
+  onboardingStep      Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  brandBrain  BrandBrain?
+  assets      BrandAsset[]
+  evaluations Evaluation[]
+  analyses    InstagramAnalysis[]
+  chatSessions ChatSession[]
+
+  @@index([userId])
+}
+
+// ─── Brand Brain ─────────────────────────────────────────────────────────────
+
+model BrandBrain {
+  id      String @id @default(cuid())
+  brandId String @unique
+
+  extractedColors   Json   @default("[]")
+  typography        Json   @default("{}")
+  toneProfile       Json   @default("{}")
+  logoUsageRules    String[]
+  spacingRules      String[]
+  designDirection   String?  @db.Text
+  visualLanguage    String?  @db.Text
+  brandPersonality  String[]
+  forbiddenUsages   String[]
+  communicationStyle String?  @db.Text
+  rawExtraction     Json     @default("{}")
+
+  processingStatus  String  @default("pending")
+  processingError   String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+}
+
+// ─── Brand Assets ─────────────────────────────────────────────────────────────
+
+model BrandAsset {
+  id       String @id @default(cuid())
+  brandId  String
+  type     String
+  fileName String
+  fileUrl  String
+  mimeType String
+  fileSize Int
+  processed Boolean @default(false)
+  metadata  Json    @default("{}")
+
+  createdAt DateTime @default(now())
+
+  brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([brandId])
+}
+
+// ─── Design Evaluation ────────────────────────────────────────────────────────
+
+model Evaluation {
+  id      String @id @default(cuid())
+  brandId String
+
+  postType String
+  imageUrl String
+
+  overallScore      Float @default(0)
+  brandConsistency  Float @default(0)
+  typographyScore   Float @default(0)
+  colorScore        Float @default(0)
+  layoutScore       Float @default(0)
+  hierarchyScore    Float @default(0)
+  toneScore         Float @default(0)
+  emotionalScore    Float @default(0)
+  aestheticsScore   Float @default(0)
+  ctaScore          Float @default(0)
+  audienceFitScore  Float @default(0)
+
+  strengths    String[]
+  weaknesses   String[]
+  suggestions  String[]
+  fullAnalysis String   @db.Text
+
+  createdAt DateTime @default(now())
+
+  brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([brandId])
+}
+
+// ─── Instagram Analysis ───────────────────────────────────────────────────────
+
+model InstagramAnalysis {
+  id      String @id @default(cuid())
+  brandId String
+
+  username           String
+  feedConsistency    Float  @default(0)
+  brandConsistency   Float  @default(0)
+  engagementQuality  Float  @default(0)
+  contentDirection   String? @db.Text
+  visualStorytelling Float  @default(0)
+  postCount          Int    @default(0)
+  analysisReport     String @db.Text
+  recommendations    String[]
+  analyzedImages     Json   @default("[]")
+
+  createdAt DateTime @default(now())
+
+  brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([brandId])
+}
+
+// ─── AI Chat ──────────────────────────────────────────────────────────────────
+
+model ChatSession {
+  id      String @id @default(cuid())
+  brandId String
+
+  title     String?
+  messages  ChatMessage[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([brandId])
+}
+
+model ChatMessage {
+  id            String @id @default(cuid())
+  chatSessionId String
+  role          String
+  content       String @db.Text
+  metadata      Json   @default("{}")
+  createdAt     DateTime @default(now())
+
+  session ChatSession @relation(fields: [chatSessionId], references: [id], onDelete: Cascade)
+
+  @@index([chatSessionId])
+}
