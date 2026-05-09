@@ -40,7 +40,7 @@ export default async function DashboardPage() {
   const avgScore =
     recentEvaluations.length > 0
       ? Math.round(
-          recentEvaluations.reduce((sum: number, e) => sum + e.overallScore, 0) /
+          recentEvaluations.reduce((sum: number, e: { overallScore: number }) => sum + e.overallScore, 0) /
             recentEvaluations.length
         )
       : null;
