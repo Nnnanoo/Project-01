@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { cn, scoreToColor, scoreToGrade } from "@/lib/utils";
+import { cn, scoreToColor } from "@/lib/utils";
 
 interface ScoreRingProps {
   score: number;

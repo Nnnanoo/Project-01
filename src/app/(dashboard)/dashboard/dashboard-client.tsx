@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import {
   Star, Camera, MessageSquare, Brain,
   TrendingUp, ArrowRight, Sparkles, CheckCircle,
 } from "lucide-react";
 import { MetricCard } from "@/components/dashboard/metric-card";
-import { ScoreRing } from "@/components/dashboard/score-ring";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -132,14 +132,13 @@ export function DashboardClient({ brand, recentEvaluations, recentAnalyses, avgS
                       className="flex items-center gap-3 p-3 rounded-lg border border-border/50 hover:border-border transition-colors"
                     >
                       {/* Image thumbnail */}
-                      <div className="w-10 h-10 rounded-lg bg-muted overflow-hidden shrink-0">
-                        <img
+                      <div className="w-10 h-10 rounded-lg bg-muted overflow-hidden shrink-0 relative">
+                        <Image
                           src={eval_.imageUrl}
                           alt="Design"
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = "none";
-                          }}
+                          fill
+                          className="object-cover"
+                          unoptimized
                         />
                       </div>
                       <div className="flex-1 min-w-0">

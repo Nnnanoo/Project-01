@@ -51,7 +51,7 @@ const INITIAL_DATA: OnboardingData = {
 };
 
 export function OnboardingWizard() {
-  const router = useRouter();
+  const _router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [data, setData] = useState<OnboardingData>(INITIAL_DATA);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import Image from "next/image";
 import { useDropzone } from "react-dropzone";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -158,8 +159,8 @@ export function InstagramClient({ brands, recentAnalyses }: Props) {
               {files.length > 0 ? (
                 <div className="grid grid-cols-3 gap-1.5">
                   {previews.slice(0, 9).map((p, i) => (
-                    <div key={i} className="aspect-square rounded-lg bg-muted overflow-hidden">
-                      <img src={p} alt="" className="w-full h-full object-cover" />
+                    <div key={i} className="aspect-square rounded-lg bg-muted overflow-hidden relative">
+                      <Image src={p} alt="" fill className="object-cover" unoptimized />
                     </div>
                   ))}
                   {files.length < 9 && (

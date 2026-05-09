@@ -1,5 +1,5 @@
 import { getOpenAI, GPT4O } from "./openai-client";
-import type { BrandBrain, ExtractedColor, TypographyProfile, ToneProfile } from "@/types";
+import type { ExtractedColor, TypographyProfile, ToneProfile } from "@/types";
 import type { OnboardingData } from "@/types";
 
 export interface BrandBrainInput {

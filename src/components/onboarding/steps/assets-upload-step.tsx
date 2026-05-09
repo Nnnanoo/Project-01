@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { useDropzone } from "react-dropzone";
-import { Upload, FileText, Image, Type, Trash2, CheckCircle2 } from "lucide-react";
+import { Upload, FileText, Image as ImageIcon, Type, Trash2, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn, formatFileSize } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,7 @@ const ACCEPTED_TYPES = {
 function getFileIcon(file: File) {
   if (file.type === "application/pdf") return <FileText className="w-5 h-5 text-red-500" />;
   if (file.type.startsWith("font")) return <Type className="w-5 h-5 text-blue-500" />;
-  return <Image className="w-5 h-5 text-green-500" />;
+  return <ImageIcon className="w-5 h-5 text-green-500" />;
 }
 
 function getFileLabel(file: File) {

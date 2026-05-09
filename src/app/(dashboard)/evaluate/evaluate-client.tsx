@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import Image from "next/image";
 import { useDropzone } from "react-dropzone";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Upload, Sparkles, Star, CheckCircle, XCircle,
+  Sparkles, Star, CheckCircle, XCircle,
   Lightbulb, TrendingUp, Image as ImageIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -176,10 +177,12 @@ export function EvaluateClient({ brands, recentEvaluations }: Props) {
               >
                 <input {...getInputProps()} />
                 {preview ? (
-                  <img
+                  <Image
                     src={preview}
                     alt="Preview"
-                    className="w-full h-full object-contain bg-muted/30"
+                    fill
+                    className="object-contain bg-muted/30"
+                    unoptimized
                   />
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full gap-3 p-6">
@@ -243,12 +246,13 @@ export function EvaluateClient({ brands, recentEvaluations }: Props) {
                       result?.id === eval_.id ? "bg-primary/5 border border-primary/20" : "hover:bg-muted/60"
                     )}
                   >
-                    <div className="w-8 h-8 rounded-md bg-muted overflow-hidden shrink-0">
-                      <img
+                    <div className="w-8 h-8 rounded-md bg-muted overflow-hidden shrink-0 relative">
+                      <Image
                         src={eval_.imageUrl}
                         alt=""
-                        className="w-full h-full object-cover"
-                        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                        fill
+                        className="object-cover"
+                        unoptimized
                       />
                     </div>
                     <div className="flex-1 min-w-0">
