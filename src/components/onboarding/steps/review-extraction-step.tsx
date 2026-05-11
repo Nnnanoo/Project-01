@@ -42,6 +42,14 @@ function ConfidenceBadge({ score }: { score: number }) {
   );
 }
 
+function RequiredBadge() {
+  return (
+    <span className="inline-flex items-center text-[10px] font-semibold text-red-500/80 tracking-wide uppercase">
+      Required
+    </span>
+  );
+}
+
 export function ReviewExtractionStep({ extraction, data, onChange }: Props) {
   const conf = extraction.confidence || {};
 
@@ -53,6 +61,7 @@ export function ReviewExtractionStep({ extraction, data, onChange }: Props) {
           Brand Whisper 01 extracted the following from your uploaded files.
           Fields marked <span className="text-amber-600 font-medium">Please verify</span> or{" "}
           <span className="text-muted-foreground font-medium">Please fill in</span> need your attention.
+          Fields marked <span className="text-red-500 font-medium">Required</span> must be filled before continuing.
         </p>
       </div>
 
@@ -125,7 +134,7 @@ export function ReviewExtractionStep({ extraction, data, onChange }: Props) {
         </div>
       )}
 
-      {/* Form fields for manual entry / verification */}
+      {/* Form fields */}
       <div className="border-t border-border/50 pt-6 space-y-5">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
           Complete your brand profile
@@ -134,7 +143,8 @@ export function ReviewExtractionStep({ extraction, data, onChange }: Props) {
         {/* Brand name */}
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
-            <Label htmlFor="brandName">Brand Name *</Label>
+            <Label htmlFor="brandName">Brand Name</Label>
+            <RequiredBadge />
             <ConfidenceBadge score={conf.brandName ?? 0} />
           </div>
           <Input
@@ -142,7 +152,55 @@ export function ReviewExtractionStep({ extraction, data, onChange }: Props) {
             value={data.name}
             onChange={(e) => onChange({ name: e.target.value })}
             placeholder="Your brand name"
-            required
+            className={!data.name.trim() ? "border-red-500/40 focus-visible:ring-red-500/30" : ""}
+          />
+        </div>
+
+        {/* Target audience — required */}
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2">
+            <Label htmlFor="audience">Target Audience</Label>
+            <RequiredBadge />
+            <ConfidenceBadge score={conf.targetAudience ?? 0} />
+          </div>
+          <Input
+            id="audience"
+            value={data.targetAudience}
+            onChange={(e) => onChange({ targetAudience: e.target.value })}
+            placeholder="e.g. Young professionals 25–35, luxury consumers in the GCC"
+            className={!data.targetAudience.trim() ? "border-red-500/40 focus-visible:ring-red-500/30" : ""}
+          />
+        </div>
+
+        {/* Country — required */}
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2">
+            <Label htmlFor="country">Country</Label>
+            <RequiredBadge />
+            <ConfidenceBadge score={conf.country ?? 0} />
+          </div>
+          <Input
+            id="country"
+            value={data.country}
+            onChange={(e) => onChange({ country: e.target.value })}
+            placeholder="e.g. United States, Saudi Arabia, United Kingdom"
+            className={!data.country.trim() ? "border-red-500/40 focus-visible:ring-red-500/30" : ""}
+          />
+        </div>
+
+        {/* Geographical region — required */}
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2">
+            <Label htmlFor="region">Geographical Region</Label>
+            <RequiredBadge />
+            <ConfidenceBadge score={conf.region ?? 0} />
+          </div>
+          <Input
+            id="region"
+            value={data.region}
+            onChange={(e) => onChange({ region: e.target.value })}
+            placeholder="e.g. North America, MENA, Europe, Southeast Asia, Global"
+            className={!data.region.trim() ? "border-red-500/40 focus-visible:ring-red-500/30" : ""}
           />
         </div>
 
@@ -157,34 +215,6 @@ export function ReviewExtractionStep({ extraction, data, onChange }: Props) {
             value={data.industry}
             onChange={(e) => onChange({ industry: e.target.value })}
             placeholder="e.g. Fashion, Technology, Food & Beverage"
-          />
-        </div>
-
-        {/* Target audience */}
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="audience">Target Audience</Label>
-            <ConfidenceBadge score={conf.targetAudience ?? 0} />
-          </div>
-          <Input
-            id="audience"
-            value={data.targetAudience}
-            onChange={(e) => onChange({ targetAudience: e.target.value })}
-            placeholder="e.g. Young professionals 25–35, luxury consumers"
-          />
-        </div>
-
-        {/* Country */}
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="country">Country / Region</Label>
-            <ConfidenceBadge score={conf.country ?? 0} />
-          </div>
-          <Input
-            id="country"
-            value={data.country}
-            onChange={(e) => onChange({ country: e.target.value })}
-            placeholder="e.g. United States, UAE, Global"
           />
         </div>
 

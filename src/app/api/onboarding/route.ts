@@ -52,6 +52,7 @@ export async function POST(req: NextRequest) {
         slug,
         industry: data.brandInfo.industry || null,
         country: data.brandInfo.country || null,
+        region: data.brandInfo.region || null,
         description: data.brandInfo.description || null,
         targetAudience: data.brandInfo.targetAudience || null,
         competitors: data.brandInfo.competitors
@@ -62,6 +63,8 @@ export async function POST(req: NextRequest) {
           : (extraction?.personality ?? []),
         toneOfVoice: data.brandInfo.toneOfVoice || extraction?.toneOfVoice || null,
         instagramUsername: data.platforms.instagramUsername || null,
+        linkedinUrl: data.platforms.linkedinUrl || null,
+        twitterUsername: data.platforms.twitterUsername || null,
         mainPlatform,
         marketingGoals: data.platforms.marketingGoals,
         contentTypes: data.platforms.contentTypes,

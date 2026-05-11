@@ -13,7 +13,7 @@ const FAQS = [
   {
     question: "How does Brand Whisper 01 analyze my designs?",
     answer:
-      "Brand Whisper 01 uses GPT-4o Vision AI to visually analyze your uploaded designs. It compares the design against your extracted brand identity (colors, typography, tone, personality) and evaluates it across 6 dimensions: brand consistency, platform optimization, audience fit, visual hierarchy, creative effectiveness, and emotional alignment. Results are returned in seconds.",
+      "Brand Whisper 01 uses Claude AI (Anthropic) to visually analyze your uploaded designs. It compares the design against your extracted brand identity (colors, typography, tone, personality) and evaluates it across 11 dimensions: brand consistency, typography, color usage, layout, visual hierarchy, tone of voice, emotional impact, aesthetics, CTA quality, audience fit, and creative effectiveness. Results are returned in seconds.",
   },
   {
     question: "Which social media platforms does it support?",

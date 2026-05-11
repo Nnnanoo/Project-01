@@ -6,7 +6,7 @@ import { useDropzone } from "react-dropzone";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Sparkles, Star, CheckCircle, XCircle,
-  Lightbulb, TrendingUp, Image as ImageIcon, Globe,
+  Lightbulb, TrendingUp, Image as ImageIcon, Globe, MessageSquare, Copy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -92,6 +92,7 @@ interface EvaluationResult {
   weaknesses: string[];
   suggestions: string[];
   fullAnalysis: string;
+  caption: string | null;
   imageUrl: string;
   postType: string;
   createdAt: string;
@@ -481,6 +482,7 @@ function EvaluationResult({ result }: { result: EvaluationResult }) {
           <TabsTrigger value="strengths" className="flex-1 text-xs">Strengths</TabsTrigger>
           <TabsTrigger value="weaknesses" className="flex-1 text-xs">Weaknesses</TabsTrigger>
           <TabsTrigger value="suggestions" className="flex-1 text-xs">Suggestions</TabsTrigger>
+          <TabsTrigger value="caption" className="flex-1 text-xs">Caption</TabsTrigger>
         </TabsList>
 
         <TabsContent value="analysis">
@@ -528,6 +530,42 @@ function EvaluationResult({ result }: { result: EvaluationResult }) {
                   <p className="text-sm text-muted-foreground">{suggestion}</p>
                 </div>
               ))}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="caption">
+          <Card className="border-border/50 mt-2">
+            <CardContent className="p-4">
+              {result.caption ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <MessageSquare className="w-4 h-4 text-violet-500" />
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        AI-generated caption
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(result.caption || "");
+                      }}
+                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-md hover:bg-muted"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      Copy
+                    </button>
+                  </div>
+                  <div className="bg-muted/40 rounded-xl p-4 border border-border/50">
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{result.caption}</p>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Caption crafted to match your brand voice and platform conventions. Edit as needed.
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">No caption generated for this evaluation.</p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

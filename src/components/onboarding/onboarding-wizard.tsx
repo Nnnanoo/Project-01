@@ -24,6 +24,7 @@ const INITIAL_DATA: OnboardingData = {
     name: "",
     industry: "",
     country: "",
+    region: "",
     description: "",
     targetAudience: "",
     competitors: "",
@@ -34,6 +35,8 @@ const INITIAL_DATA: OnboardingData = {
     selectedPlatforms: [],
     mainPlatform: "",
     instagramUsername: "",
+    linkedinUrl: "",
+    twitterUsername: "",
     marketingGoals: [],
     contentTypes: [],
     postingFrequency: "",
@@ -86,6 +89,7 @@ export function OnboardingWizard() {
         name: ext.brandName || "",
         industry: ext.industry || "",
         country: ext.country || "",
+        region: ext.region || "",
         description: ext.description || "",
         targetAudience: ext.targetAudience || "",
         personality: ext.personality.length > 0 ? ext.personality : [],
@@ -112,9 +116,23 @@ export function OnboardingWizard() {
         return;
       }
     }
-    if (currentStep === 2 && !data.brandInfo.name.trim()) {
-      toast.error("Please enter your brand name before continuing.");
-      return;
+    if (currentStep === 2) {
+      if (!data.brandInfo.name.trim()) {
+        toast.error("Brand name is required.");
+        return;
+      }
+      if (!data.brandInfo.targetAudience.trim()) {
+        toast.error("Target audience is required.");
+        return;
+      }
+      if (!data.brandInfo.country.trim()) {
+        toast.error("Country is required.");
+        return;
+      }
+      if (!data.brandInfo.region.trim()) {
+        toast.error("Geographical region is required.");
+        return;
+      }
     }
     if (currentStep < STEPS.length) {
       setCurrentStep((s) => s + 1);

@@ -21,11 +21,11 @@ export function MarketingNav() {
 
         {/* Desktop links */}
         <div className="hidden md:flex items-center gap-1">
+          <Link href="/features" className="px-3.5 py-2 text-sm text-zinc-400 hover:text-white transition-colors rounded-lg hover:bg-white/[0.04]">Features</Link>
+          <Link href="/about" className="px-3.5 py-2 text-sm text-zinc-400 hover:text-white transition-colors rounded-lg hover:bg-white/[0.04]">About</Link>
           {[
-            { href: "#features", label: "Features" },
-            { href: "#how-it-works", label: "How it works" },
-            { href: "#pricing", label: "Pricing" },
-            { href: "#faq", label: "FAQ" },
+            { href: "/#how-it-works", label: "How it works" },
+            { href: "/#pricing", label: "Pricing" },
           ].map((item) => (
             <a
               key={item.href}
@@ -75,19 +75,19 @@ export function MarketingNav() {
           >
             <div className="px-6 py-4 flex flex-col gap-1">
               {[
-                { href: "#features", label: "Features" },
-                { href: "#how-it-works", label: "How it works" },
-                { href: "#pricing", label: "Pricing" },
-                { href: "#faq", label: "FAQ" },
+                { href: "/features", label: "Features" },
+                { href: "/about", label: "About" },
+                { href: "/#how-it-works", label: "How it works" },
+                { href: "/#pricing", label: "Pricing" },
               ].map((item) => (
-                <a
+                <Link
                   key={item.href}
                   href={item.href}
                   className="py-2.5 text-sm text-zinc-400 hover:text-white transition-colors"
                   onClick={() => setMobileOpen(false)}
                 >
                   {item.label}
-                </a>
+                </Link>
               ))}
               <div className="mt-3 pt-3 border-t border-white/[0.06] flex flex-col gap-2">
                 <Link

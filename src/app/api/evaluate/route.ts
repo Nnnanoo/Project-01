@@ -5,6 +5,7 @@ import { evaluateDesign } from "@/lib/ai/design-evaluator";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
+
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -32,6 +33,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Brand not found" }, { status: 404 });
     }
 
+    // Check credits
+    const user = await prisma.user.findUnique({ where: { id: session.user.id } });
+    if (!user || user.credits < 100) {
+      return NextResponse.json({ error: "Insufficient credits. Please upgrade your plan." }, { status: 402 });
+    }
+
     // Store the uploaded image
     const buffer = Buffer.from(await imageFile.arrayBuffer());
     const ext = path.extname(imageFile.name) || ".jpg";
@@ -44,39 +51,63 @@ export async function POST(req: NextRequest) {
     // Convert to base64 for Vision API
     const base64 = `data:${imageFile.type};base64,${buffer.toString("base64")}`;
 
-    // Run evaluation
+    // Run evaluation with full brand + social context
     const result = await evaluateDesign(
       base64,
       brand.brandBrain as Parameters<typeof evaluateDesign>[1],
       postType,
       brand.name,
-      platform
+      platform,
+      {
+        instagramUsername: brand.instagramUsername,
+        linkedinUrl: (brand as Record<string, unknown>).linkedinUrl as string | null,
+        twitterUsername: (brand as Record<string, unknown>).twitterUsername as string | null,
+        targetAudience: brand.targetAudience,
+        country: brand.country,
+        region: (brand as Record<string, unknown>).region as string | null,
+      }
     );
 
-    // Store evaluation in DB
-    const evaluation = await prisma.evaluation.create({
-      data: {
-        brandId,
-        postType,
-        platform,
-        imageUrl,
-        overallScore: result.overallScore,
-        brandConsistency: result.brandConsistency,
-        typographyScore: result.typographyScore,
-        colorScore: result.colorScore,
-        layoutScore: result.layoutScore,
-        hierarchyScore: result.hierarchyScore,
-        toneScore: result.toneScore,
-        emotionalScore: result.emotionalScore,
-        aestheticsScore: result.aestheticsScore,
-        ctaScore: result.ctaScore,
-        audienceFitScore: result.audienceFitScore,
-        strengths: result.strengths,
-        weaknesses: result.weaknesses,
-        suggestions: result.suggestions,
-        fullAnalysis: result.fullAnalysis,
-      },
-    });
+    // Deduct credits and store evaluation atomically
+    const [evaluation] = await prisma.$transaction([
+      prisma.evaluation.create({
+        data: {
+          brandId,
+          postType,
+          platform,
+          imageUrl,
+          overallScore: result.overallScore,
+          brandConsistency: result.brandConsistency,
+          typographyScore: result.typographyScore,
+          colorScore: result.colorScore,
+          layoutScore: result.layoutScore,
+          hierarchyScore: result.hierarchyScore,
+          toneScore: result.toneScore,
+          emotionalScore: result.emotionalScore,
+          aestheticsScore: result.aestheticsScore,
+          ctaScore: result.ctaScore,
+          audienceFitScore: result.audienceFitScore,
+          strengths: result.strengths,
+          weaknesses: result.weaknesses,
+          suggestions: result.suggestions,
+          fullAnalysis: result.fullAnalysis,
+          caption: result.caption,
+          creditsUsed: 100,
+        },
+      }),
+      prisma.user.update({
+        where: { id: session.user.id },
+        data: { credits: { decrement: 100 } },
+      }),
+      prisma.creditTransaction.create({
+        data: {
+          userId: session.user.id,
+          amount: -100,
+          type: "evaluation",
+          description: `Design evaluation — ${platform} ${postType.replace(/_/g, " ")}`,
+        },
+      }),
+    ]);
 
     return NextResponse.json({ success: true, evaluation });
   } catch (error) {

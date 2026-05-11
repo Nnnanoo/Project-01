@@ -79,6 +79,7 @@ model Brand {
   description String? @db.Text
   slug        String  @unique
 
+  region           String?
   targetAudience   String?
   competitors      String[]
   personality      String[]
@@ -87,6 +88,8 @@ model Brand {
   vision           String?  @db.Text
 
   instagramUsername String?
+  linkedinUrl       String?
+  twitterUsername   String?
   mainPlatform      String?
   marketingGoals    String[]
   contentTypes      String[]
@@ -187,8 +190,9 @@ model Evaluation {
   suggestions  String[]
   fullAnalysis String   @db.Text
 
-  platform    String @default("instagram")
-  creditsUsed Int    @default(100)
+  platform    String  @default("instagram")
+  creditsUsed Int     @default(100)
+  caption     String? @db.Text
 
   createdAt DateTime @default(now())
 

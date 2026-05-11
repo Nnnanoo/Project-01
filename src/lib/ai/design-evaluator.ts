@@ -17,6 +17,7 @@ export interface EvaluationResult {
   weaknesses: string[];
   suggestions: string[];
   fullAnalysis: string;
+  caption: string;
 }
 
 const EVALUATOR_SYSTEM = `You are a world-class creative director and brand strategist with deep expertise in visual design, brand identity, and social media marketing. You evaluate designs with the discerning eye of someone who has worked with top global brands.
@@ -41,17 +42,36 @@ const PLATFORM_CONTEXT: Record<string, string> = {
     "TikTok — prioritize energy, trend alignment, bold visuals, and Gen-Z appeal. The design should feel native to a fast-scrolling, entertainment-first environment.",
 };
 
+const PLATFORM_CAPTION_STYLE: Record<string, string> = {
+  instagram: "Write an Instagram caption: 2-3 punchy sentences + 3-5 relevant hashtags. Hook in the first line. Conversational but on-brand.",
+  linkedin: "Write a LinkedIn post caption: 2-3 professional sentences. No hashtags unless very relevant. Thought leadership tone. End with a subtle CTA or question.",
+  twitter: "Write an X/Twitter post: max 240 characters, punchy, direct. One optional hashtag max.",
+  facebook: "Write a Facebook post caption: 2-3 sentences, friendly and accessible. Optional 1-2 hashtags.",
+  tiktok: "Write a TikTok caption: short, energetic, 1-2 sentences + 3 trending-style hashtags. Gen-Z friendly.",
+};
+
+export interface BrandSocialContext {
+  instagramUsername?: string | null;
+  linkedinUrl?: string | null;
+  twitterUsername?: string | null;
+  targetAudience?: string | null;
+  country?: string | null;
+  region?: string | null;
+}
+
 export async function evaluateDesign(
   imageBase64: string,
   brandBrain: BrandBrain | null,
   postType: string,
   brandName: string,
-  platform: string = "instagram"
+  platform: string = "instagram",
+  socialContext?: BrandSocialContext
 ): Promise<EvaluationResult> {
   const anthropic = getAnthropic();
 
-  const brandContext = buildBrandContext(brandBrain, brandName);
+  const brandContext = buildBrandContext(brandBrain, brandName, socialContext);
   const platformContext = PLATFORM_CONTEXT[platform] || PLATFORM_CONTEXT.instagram;
+  const captionStyle = PLATFORM_CAPTION_STYLE[platform] || PLATFORM_CAPTION_STYLE.instagram;
 
   const base64Data = imageBase64.startsWith("data:")
     ? imageBase64.split(",")[1]
@@ -62,7 +82,7 @@ export async function evaluateDesign(
 
   const response = await anthropic.messages.create({
     model: CLAUDE_SONNET,
-    max_tokens: 2000,
+    max_tokens: 2500,
     system: EVALUATOR_SYSTEM,
     messages: [
       {
@@ -82,7 +102,7 @@ ${platformContext}
 BRAND PROFILE:
 ${brandContext}
 
-Analyze the design across all dimensions and return a JSON evaluation with EXACTLY this structure:
+Analyze the design and return a JSON object with EXACTLY this structure:
 {
   "overallScore": <0-100>,
   "brandConsistency": <0-100>,
@@ -111,8 +131,12 @@ Analyze the design across all dimensions and return a JSON evaluation with EXACT
     "Actionable improvement 3",
     "Actionable improvement 4"
   ],
-  "fullAnalysis": "A 3-4 paragraph strategic analysis written in the voice of a senior creative director. Cover: overall impression, brand alignment, design craft, and key recommendation. Be specific, intelligent, and human. Avoid generic statements."
+  "fullAnalysis": "A 3-4 paragraph strategic analysis written in the voice of a senior creative director. Cover: overall impression, brand alignment, design craft, and key recommendation. Be specific, intelligent, and human. Avoid generic statements.",
+  "caption": "<platform-native caption for this design>"
 }
+
+Caption instructions: ${captionStyle}
+The caption should reflect the brand's voice, speak to their target audience, and feel native to ${platform}.
 
 Score calibration:
 - 90-100: Exceptional, could be used as a brand standard example
@@ -149,12 +173,31 @@ Return ONLY the JSON object, no markdown fences.`,
     weaknesses: result.weaknesses || [],
     suggestions: result.suggestions || [],
     fullAnalysis: result.fullAnalysis || "",
+    caption: result.caption || "",
   };
 }
 
-function buildBrandContext(brain: BrandBrain | null, brandName: string): string {
+function buildBrandContext(
+  brain: BrandBrain | null,
+  brandName: string,
+  social?: BrandSocialContext
+): string {
+  const socialLines: string[] = [];
+  if (social?.targetAudience) socialLines.push(`Target Audience: ${social.targetAudience}`);
+  if (social?.country || social?.region) {
+    const geo = [social.country, social.region].filter(Boolean).join(", ");
+    socialLines.push(`Geographic Market: ${geo}`);
+  }
+  if (social?.instagramUsername) socialLines.push(`Instagram: @${social.instagramUsername}`);
+  if (social?.linkedinUrl) socialLines.push(`LinkedIn: ${social.linkedinUrl}`);
+  if (social?.twitterUsername) socialLines.push(`X/Twitter: @${social.twitterUsername}`);
+
   if (!brain) {
-    return `Brand: ${brandName}\n(No brand guidelines loaded — evaluate purely on design quality and general best practices)`;
+    return [
+      `Brand: ${brandName}`,
+      ...socialLines,
+      "(No brand guidelines loaded — evaluate purely on design quality and general best practices)",
+    ].join("\n");
   }
 
   const colors = brain.extractedColors
@@ -165,6 +208,7 @@ function buildBrandContext(brain: BrandBrain | null, brandName: string): string 
 
   return [
     `Brand: ${brandName}`,
+    ...socialLines,
     `Brand Personality: ${brain.brandPersonality.join(", ")}`,
     `Design Direction: ${brain.designDirection}`,
     `Visual Language: ${brain.visualLanguage}`,

@@ -48,7 +48,6 @@ export function PlatformSetupStep({ data, onChange }: Props) {
     const next = current.includes(id)
       ? current.filter((p) => p !== id)
       : [...current, id];
-    // If primary is removed, reset it
     const newMain = next.includes(data.mainPlatform) ? data.mainPlatform : (next[0] || "");
     onChange({ selectedPlatforms: next, mainPlatform: newMain });
   }
@@ -78,6 +77,7 @@ export function PlatformSetupStep({ data, onChange }: Props) {
         <p className="text-sm text-muted-foreground">
           Tell Brand Whisper 01 where you post. The AI evaluation engine adapts its
           analysis based on each platform&apos;s unique conventions and audience expectations.
+          Adding your social handles lets the AI factor in your existing presence.
         </p>
       </div>
 
@@ -129,20 +129,58 @@ export function PlatformSetupStep({ data, onChange }: Props) {
         </div>
       )}
 
-      {/* Instagram username */}
-      {data.selectedPlatforms.includes("instagram") && (
-        <div className="space-y-1.5">
-          <Label htmlFor="igUsername">Instagram username (optional)</Label>
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">@</span>
-            <Input
-              id="igUsername"
-              value={data.instagramUsername}
-              onChange={(e) => onChange({ instagramUsername: e.target.value.replace("@", "") })}
-              placeholder="yourbrand"
-              className="pl-7"
-            />
-          </div>
+      {/* Social media handles */}
+      {(data.selectedPlatforms.includes("instagram") ||
+        data.selectedPlatforms.includes("linkedin") ||
+        data.selectedPlatforms.includes("twitter")) && (
+        <div className="space-y-4 border border-border/50 rounded-xl p-4 bg-muted/20">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            Social media handles (optional — improves AI evaluation context)
+          </p>
+
+          {data.selectedPlatforms.includes("instagram") && (
+            <div className="space-y-1.5">
+              <Label htmlFor="igUsername">Instagram username</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">@</span>
+                <Input
+                  id="igUsername"
+                  value={data.instagramUsername}
+                  onChange={(e) => onChange({ instagramUsername: e.target.value.replace("@", "") })}
+                  placeholder="yourbrand"
+                  className="pl-7"
+                />
+              </div>
+            </div>
+          )}
+
+          {data.selectedPlatforms.includes("linkedin") && (
+            <div className="space-y-1.5">
+              <Label htmlFor="linkedinUrl">LinkedIn company page URL</Label>
+              <Input
+                id="linkedinUrl"
+                value={data.linkedinUrl}
+                onChange={(e) => onChange({ linkedinUrl: e.target.value })}
+                placeholder="linkedin.com/company/yourbrand"
+              />
+            </div>
+          )}
+
+          {data.selectedPlatforms.includes("twitter") && (
+            <div className="space-y-1.5">
+              <Label htmlFor="twitterUsername">X / Twitter handle</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">@</span>
+                <Input
+                  id="twitterUsername"
+                  value={data.twitterUsername}
+                  onChange={(e) => onChange({ twitterUsername: e.target.value.replace("@", "") })}
+                  placeholder="yourbrand"
+                  className="pl-7"
+                />
+              </div>
+            </div>
+          )}
         </div>
       )}
 

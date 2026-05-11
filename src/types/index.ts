@@ -20,6 +20,7 @@ export interface Brand {
   name: string;
   industry: string | null;
   country: string | null;
+  region: string | null;
   description: string | null;
   targetAudience: string | null;
   competitors: string[];
@@ -28,6 +29,8 @@ export interface Brand {
   mission: string | null;
   vision: string | null;
   instagramUsername: string | null;
+  linkedinUrl: string | null;
+  twitterUsername: string | null;
   mainPlatform: string | null;
   selectedPlatforms: string[];
   marketingGoals: string[];
@@ -154,6 +157,7 @@ export interface Evaluation {
   weaknesses: string[];
   suggestions: string[];
   fullAnalysis: string;
+  caption: string | null;
   creditsUsed: number;
   createdAt: Date;
 }
@@ -191,6 +195,7 @@ export interface BrandExtraction {
   brandName: string | null;
   industry: string | null;
   country: string | null;
+  region: string | null;
   description: string | null;
   targetAudience: string | null;
   personality: string[];
@@ -209,6 +214,7 @@ export interface OnboardingData {
     name: string;
     industry: string;
     country: string;
+    region: string;
     description: string;
     targetAudience: string;
     competitors: string;
@@ -219,6 +225,8 @@ export interface OnboardingData {
     selectedPlatforms: string[];
     mainPlatform: string;
     instagramUsername: string;
+    linkedinUrl: string;
+    twitterUsername: string;
     marketingGoals: string[];
     contentTypes: string[];
     postingFrequency: string;
