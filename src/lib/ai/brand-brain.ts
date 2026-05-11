@@ -1,4 +1,4 @@
-import { getOpenAI, GPT4O } from "./openai-client";
+import { getAnthropic, CLAUDE_SONNET } from "./anthropic-client";
 import type { ExtractedColor, TypographyProfile, ToneProfile } from "@/types";
 
 export interface BrandBrainContext {
@@ -46,24 +46,22 @@ Extract real information from the text — do not hallucinate. If information is
 export async function buildBrandBrain(
   input: BrandBrainInput
 ): Promise<BrandBrainExtraction> {
-  const openai = getOpenAI();
+  const anthropic = getAnthropic();
   const { pdfText, context } = input;
   const contextText = buildContextText(pdfText, context);
 
-  const response = await openai.chat.completions.create({
-    model: GPT4O,
+  const response = await anthropic.messages.create({
+    model: CLAUDE_SONNET,
+    max_tokens: 3000,
+    system: BRAND_BRAIN_SYSTEM_PROMPT,
     messages: [
-      {
-        role: "system",
-        content: BRAND_BRAIN_SYSTEM_PROMPT,
-      },
       {
         role: "user",
         content: `Analyze this brand information and extract the Brand Brain:
 
 ${contextText}
 
-Return a JSON object with EXACTLY this structure:
+Return a JSON object with EXACTLY this structure (no markdown fences):
 {
   "extractedColors": [
     {
@@ -98,12 +96,11 @@ Return a JSON object with EXACTLY this structure:
 }`,
       },
     ],
-    temperature: 0.3,
-    response_format: { type: "json_object" },
   });
 
-  const content = response.choices[0].message.content;
-  if (!content) throw new Error("Empty response from AI");
+  const block = response.content[0];
+  if (block.type !== "text" || !block.text) throw new Error("Empty response from AI");
+  const content = block.text;
 
   const parsed = JSON.parse(content);
 

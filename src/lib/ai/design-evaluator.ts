@@ -1,4 +1,4 @@
-import { getOpenAI, GPT4O } from "./openai-client";
+import { getAnthropic, CLAUDE_SONNET } from "./anthropic-client";
 import type { BrandBrain } from "@/types";
 
 export interface EvaluationResult {
@@ -48,22 +48,30 @@ export async function evaluateDesign(
   brandName: string,
   platform: string = "instagram"
 ): Promise<EvaluationResult> {
-  const openai = getOpenAI();
+  const anthropic = getAnthropic();
 
   const brandContext = buildBrandContext(brandBrain, brandName);
   const platformContext = PLATFORM_CONTEXT[platform] || PLATFORM_CONTEXT.instagram;
-  const mimeType = imageBase64.startsWith("data:image/png") ? "image/png" : "image/jpeg";
 
-  const response = await openai.chat.completions.create({
-    model: GPT4O,
+  const base64Data = imageBase64.startsWith("data:")
+    ? imageBase64.split(",")[1]
+    : imageBase64;
+  const mediaType: "image/png" | "image/jpeg" = imageBase64.startsWith("data:image/png")
+    ? "image/png"
+    : "image/jpeg";
+
+  const response = await anthropic.messages.create({
+    model: CLAUDE_SONNET,
+    max_tokens: 2000,
+    system: EVALUATOR_SYSTEM,
     messages: [
-      {
-        role: "system",
-        content: EVALUATOR_SYSTEM,
-      },
       {
         role: "user",
         content: [
+          {
+            type: "image",
+            source: { type: "base64", media_type: mediaType, data: base64Data },
+          },
           {
             type: "text",
             text: `Evaluate this ${postType.replace(/_/g, " ")} for the brand "${brandName}".
@@ -111,29 +119,19 @@ Score calibration:
 - 75-89: Strong with minor issues
 - 60-74: Decent but has clear problems to address
 - 40-59: Significant issues affecting brand or design quality
-- 0-39: Fundamental problems requiring redesign`,
-          },
-          {
-            type: "image_url",
-            image_url: {
-              url: imageBase64.startsWith("data:")
-                ? imageBase64
-                : `data:${mimeType};base64,${imageBase64}`,
-              detail: "high",
-            },
+- 0-39: Fundamental problems requiring redesign
+
+Return ONLY the JSON object, no markdown fences.`,
           },
         ],
       },
     ],
-    temperature: 0.4,
-    response_format: { type: "json_object" },
-    max_tokens: 2000,
   });
 
-  const content = response.choices[0].message.content;
-  if (!content) throw new Error("Empty evaluation response");
+  const block = response.content[0];
+  if (block.type !== "text" || !block.text) throw new Error("Empty evaluation response");
 
-  const result = JSON.parse(content);
+  const result = JSON.parse(block.text);
 
   return {
     overallScore: clamp(result.overallScore, 0, 100),

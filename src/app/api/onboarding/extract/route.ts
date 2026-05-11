@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { extractTextFromBuffer } from "@/lib/ai/pdf-processor";
-import { getOpenAI, GPT4O } from "@/lib/ai/openai-client";
+import { getAnthropic, CLAUDE_SONNET } from "@/lib/ai/anthropic-client";
 import type { BrandExtraction } from "@/types";
 
 const EXTRACTION_SYSTEM = `You are a senior brand strategist with expertise in visual identity, brand guidelines, and brand architecture.
@@ -69,9 +69,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No files provided" }, { status: 400 });
     }
 
-    const openai = getOpenAI();
+    const anthropic = getAnthropic();
     let pdfText = "";
-    const imageContents: { type: "image_url"; image_url: { url: string; detail: "high" } }[] = [];
+    type ImageBlock = { type: "image"; source: { type: "base64"; media_type: "image/png" | "image/jpeg" | "image/gif" | "image/webp"; data: string } };
+    const imageBlocks: ImageBlock[] = [];
 
     // Process each file
     for (const file of files) {
@@ -80,60 +81,56 @@ export async function POST(req: NextRequest) {
       if (file.type === "application/pdf" && !pdfText) {
         try {
           const extracted = await extractTextFromBuffer(buffer);
-          pdfText = extracted.text.slice(0, 12000); // Cap for token limits
+          pdfText = extracted.text.slice(0, 12000);
         } catch {
           // PDF extraction failed — continue without it
         }
-      } else if (file.type.startsWith("image/") && imageContents.length < 4) {
-        const base64 = buffer.toString("base64");
-        const mimeType = file.type;
-        imageContents.push({
-          type: "image_url",
-          image_url: {
-            url: `data:${mimeType};base64,${base64}`,
-            detail: "high",
-          },
-        });
+      } else if (file.type.startsWith("image/") && imageBlocks.length < 4) {
+        const validTypes = ["image/png", "image/jpeg", "image/gif", "image/webp"];
+        if (validTypes.includes(file.type)) {
+          imageBlocks.push({
+            type: "image",
+            source: {
+              type: "base64",
+              media_type: file.type as "image/png" | "image/jpeg" | "image/gif" | "image/webp",
+              data: buffer.toString("base64"),
+            },
+          });
+        }
       }
     }
 
-    // Build the user message
-    const userTextParts: string[] = [];
-    userTextParts.push(
-      `Analyze the following brand materials and extract all brand identity information.\n\nFiles uploaded: ${files.map((f) => f.name).join(", ")}`
-    );
+    // Build the user message content
+    let userText = `Analyze the following brand materials and extract all brand identity information.\n\nFiles uploaded: ${files.map((f) => f.name).join(", ")}`;
 
     if (pdfText) {
-      userTextParts.push(`\n\nBRAND GUIDELINES PDF TEXT:\n${pdfText}`);
+      userText += `\n\nBRAND GUIDELINES PDF TEXT:\n${pdfText}`;
     }
 
-    if (imageContents.length === 0 && !pdfText) {
-      userTextParts.push(
-        "\n\nNote: No readable content was found in the uploaded files. Return null values with very low confidence scores."
-      );
+    if (imageBlocks.length === 0 && !pdfText) {
+      userText += "\n\nNote: No readable content was found in the uploaded files. Return null values with very low confidence scores.";
     }
 
-    const messages: Parameters<typeof openai.chat.completions.create>[0]["messages"] = [
-      { role: "system", content: EXTRACTION_SYSTEM },
-      {
-        role: "user",
-        content: [
-          { type: "text", text: userTextParts.join("") },
-          ...imageContents,
-        ],
-      },
-    ];
+    userText += "\n\nReturn ONLY the JSON object, no markdown fences.";
 
-    const response = await openai.chat.completions.create({
-      model: GPT4O,
-      messages,
-      temperature: 0.2,
-      response_format: { type: "json_object" },
+    const response = await anthropic.messages.create({
+      model: CLAUDE_SONNET,
       max_tokens: 2000,
+      system: EXTRACTION_SYSTEM,
+      messages: [
+        {
+          role: "user",
+          content: [
+            ...imageBlocks,
+            { type: "text", text: userText },
+          ],
+        },
+      ],
     });
 
-    const content = response.choices[0].message.content;
-    if (!content) throw new Error("Empty extraction response");
+    const block = response.content[0];
+    if (block.type !== "text" || !block.text) throw new Error("Empty extraction response");
+    const content = block.text;
 
     const raw = JSON.parse(content);
 
