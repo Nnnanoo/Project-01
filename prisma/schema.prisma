@@ -15,12 +15,21 @@ model User {
   emailVerified DateTime?
   image         String?
   password      String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
 
-  accounts Account[]
-  sessions Session[]
-  brands   Brand[]
+  credits              Int       @default(5000)
+  plan                 String    @default("trial")
+  subscriptionStatus   String?
+  stripeCustomerId     String?   @unique
+  stripeSubscriptionId String?   @unique
+  trialEndsAt          DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  brands        Brand[]
+  creditHistory CreditTransaction[]
 }
 
 model Account {
@@ -178,11 +187,30 @@ model Evaluation {
   suggestions  String[]
   fullAnalysis String   @db.Text
 
+  platform    String @default("instagram")
+  creditsUsed Int    @default(100)
+
   createdAt DateTime @default(now())
 
   brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
 
   @@index([brandId])
+}
+
+// ─── Credits ──────────────────────────────────────────────────────────────────
+
+model CreditTransaction {
+  id          String   @id @default(cuid())
+  userId      String
+  amount      Int
+  type        String
+  description String?
+  metadata    Json?    @default("{}")
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 // ─── Instagram Analysis ───────────────────────────────────────────────────────

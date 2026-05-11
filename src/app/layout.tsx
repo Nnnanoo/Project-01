@@ -15,12 +15,12 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    template: "%s | Afloatter",
-    default: "Afloatter — Brand Performance & Design Evaluation",
+    template: "%s | Whisperly",
+    default: "Whisperly — AI Brand Evaluation for Social Media",
   },
   description:
-    "AI-powered brand evaluation platform. Analyze Instagram designs, evaluate brand consistency, and get intelligent creative director feedback.",
-  keywords: ["brand evaluation", "design evaluation", "brand guidelines", "AI", "Instagram analysis"],
+    "Upload your brand guidelines. Evaluate every social media design in seconds. Get creative director-level feedback powered by Brand Whisper 01.",
+  keywords: ["brand evaluation", "AI brand analysis", "social media design", "brand consistency", "Brand Whisper 01"],
 };
 
 export default function RootLayout({

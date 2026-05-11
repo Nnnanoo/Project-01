@@ -1,11 +1,27 @@
 import { getOpenAI, GPT4O } from "./openai-client";
 import type { ExtractedColor, TypographyProfile, ToneProfile } from "@/types";
-import type { OnboardingData } from "@/types";
+
+export interface BrandBrainContext {
+  brandName: string;
+  industry?: string;
+  country?: string;
+  description?: string;
+  targetAudience?: string;
+  competitors?: string;
+  personality?: string[];
+  toneOfVoice?: string;
+  preferredColors?: string;
+  typographyStyle?: string;
+  designStyle?: string;
+  mainPlatform?: string;
+  marketingGoals?: string[];
+  contentTypes?: string[];
+  postingFrequency?: string;
+}
 
 export interface BrandBrainInput {
   pdfText?: string;
-  onboardingData: OnboardingData;
-  brandName: string;
+  context: BrandBrainContext;
 }
 
 export interface BrandBrainExtraction {
@@ -31,10 +47,8 @@ export async function buildBrandBrain(
   input: BrandBrainInput
 ): Promise<BrandBrainExtraction> {
   const openai = getOpenAI();
-
-  const { pdfText, onboardingData, brandName } = input;
-
-  const contextText = buildContextText(pdfText, onboardingData, brandName);
+  const { pdfText, context } = input;
+  const contextText = buildContextText(pdfText, context);
 
   const response = await openai.chat.completions.create({
     model: GPT4O,
@@ -107,40 +121,32 @@ Return a JSON object with EXACTLY this structure:
   };
 }
 
-function buildContextText(
-  pdfText: string | undefined,
-  data: OnboardingData,
-  brandName: string
-): string {
+function buildContextText(pdfText: string | undefined, ctx: BrandBrainContext): string {
   const lines: string[] = [
-    `BRAND NAME: ${brandName}`,
-    `INDUSTRY: ${data.brandInfo.industry || "Not specified"}`,
-    `COUNTRY/MARKET: ${data.brandInfo.country || "Not specified"}`,
-    `BRAND DESCRIPTION: ${data.brandInfo.description || "Not provided"}`,
-    `TARGET AUDIENCE: ${data.brandInfo.targetAudience || "Not specified"}`,
-    `COMPETITORS: ${data.brandInfo.competitors || "Not specified"}`,
-    `BRAND PERSONALITY TRAITS: ${data.brandInfo.personality.join(", ") || "Not specified"}`,
-    `TONE OF VOICE: ${data.brandInfo.toneOfVoice || "Not specified"}`,
-    `BRAND MISSION: ${data.brandInfo.mission || "Not specified"}`,
-    `BRAND VISION: ${data.brandInfo.vision || "Not specified"}`,
+    `BRAND NAME: ${ctx.brandName}`,
+    `INDUSTRY: ${ctx.industry || "Not specified"}`,
+    `COUNTRY/MARKET: ${ctx.country || "Not specified"}`,
+    `BRAND DESCRIPTION: ${ctx.description || "Not provided"}`,
+    `TARGET AUDIENCE: ${ctx.targetAudience || "Not specified"}`,
+    `COMPETITORS: ${ctx.competitors || "Not specified"}`,
+    `BRAND PERSONALITY TRAITS: ${(ctx.personality || []).join(", ") || "Not specified"}`,
+    `TONE OF VOICE: ${ctx.toneOfVoice || "Not specified"}`,
     "",
     "VISUAL IDENTITY:",
-    `PREFERRED COLORS: ${data.visualIdentity.preferredColors || "Not specified"}`,
-    `TYPOGRAPHY STYLE: ${data.visualIdentity.typographyStyle || "Not specified"}`,
-    `DESIGN STYLE: ${data.visualIdentity.designStyle || "Not specified"}`,
-    `CONTENT STYLE: ${data.visualIdentity.contentStyle || "Not specified"}`,
-    `EXAMPLE BRANDS: ${data.visualIdentity.exampleBrands || "Not specified"}`,
+    `PREFERRED COLORS: ${ctx.preferredColors || "Not specified"}`,
+    `TYPOGRAPHY STYLE: ${ctx.typographyStyle || "Not specified"}`,
+    `DESIGN STYLE: ${ctx.designStyle || "Not specified"}`,
     "",
     "SOCIAL MEDIA:",
-    `MAIN PLATFORM: ${data.socialMedia.mainPlatform || "Not specified"}`,
-    `MARKETING GOALS: ${data.socialMedia.marketingGoals.join(", ") || "Not specified"}`,
-    `CONTENT TYPES: ${data.socialMedia.contentTypes.join(", ") || "Not specified"}`,
-    `POSTING FREQUENCY: ${data.socialMedia.postingFrequency || "Not specified"}`,
+    `MAIN PLATFORM: ${ctx.mainPlatform || "Not specified"}`,
+    `MARKETING GOALS: ${(ctx.marketingGoals || []).join(", ") || "Not specified"}`,
+    `CONTENT TYPES: ${(ctx.contentTypes || []).join(", ") || "Not specified"}`,
+    `POSTING FREQUENCY: ${ctx.postingFrequency || "Not specified"}`,
   ];
 
-  if (pdfText && pdfText.trim()) {
+  if (pdfText?.trim()) {
     lines.push("", "--- BRAND GUIDELINES PDF CONTENT ---");
-    lines.push(pdfText.substring(0, 12000)); // Use first 12k chars to fit context
+    lines.push(pdfText.substring(0, 12000));
   }
 
   return lines.join("\n");

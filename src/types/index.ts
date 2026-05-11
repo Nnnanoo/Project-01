@@ -5,6 +5,9 @@ export interface User {
   name: string | null;
   email: string;
   image: string | null;
+  credits: number;
+  plan: string;
+  subscriptionStatus: string | null;
   createdAt: Date;
   brands: Brand[];
 }
@@ -26,6 +29,7 @@ export interface Brand {
   vision: string | null;
   instagramUsername: string | null;
   mainPlatform: string | null;
+  selectedPlatforms: string[];
   marketingGoals: string[];
   contentTypes: string[];
   postingFrequency: string | null;
@@ -108,6 +112,15 @@ export interface BrandAsset {
   createdAt: Date;
 }
 
+// ─── Platform ────────────────────────────────────────────────────────────────
+
+export type Platform =
+  | "instagram"
+  | "linkedin"
+  | "twitter"
+  | "facebook"
+  | "tiktok";
+
 // ─── Evaluation ──────────────────────────────────────────────────────────────
 
 export type PostType =
@@ -115,12 +128,16 @@ export type PostType =
   | "carousel"
   | "story"
   | "reel_cover"
-  | "ad_creative";
+  | "ad_creative"
+  | "single_image"
+  | "video_thumbnail"
+  | "cover_photo";
 
 export interface Evaluation {
   id: string;
   brandId: string;
   postType: PostType;
+  platform: Platform;
   imageUrl: string;
   overallScore: number;
   brandConsistency: number;
@@ -137,6 +154,7 @@ export interface Evaluation {
   weaknesses: string[];
   suggestions: string[];
   fullAnalysis: string;
+  creditsUsed: number;
   createdAt: Date;
 }
 
@@ -166,14 +184,25 @@ export interface ChatMessage {
   createdAt: Date;
 }
 
-// ─── Onboarding ──────────────────────────────────────────────────────────────
+// ─── Brand Extraction ─────────────────────────────────────────────────────────
+// Returned by /api/onboarding/extract — AI-analyzed brand identity from uploaded files
 
-export interface OnboardingStep {
-  id: number;
-  title: string;
-  description: string;
-  completed: boolean;
+export interface BrandExtraction {
+  brandName: string | null;
+  industry: string | null;
+  country: string | null;
+  description: string | null;
+  targetAudience: string | null;
+  personality: string[];
+  toneOfVoice: string | null;
+  colors: ExtractedColor[];
+  typography: Partial<TypographyProfile>;
+  designStyle: string | null;
+  keywords: string[];
+  confidence: Record<string, number>;
 }
+
+// ─── Onboarding ──────────────────────────────────────────────────────────────
 
 export interface OnboardingData {
   brandInfo: {
@@ -185,23 +214,25 @@ export interface OnboardingData {
     competitors: string;
     personality: string[];
     toneOfVoice: string;
-    mission: string;
-    vision: string;
   };
-  visualIdentity: {
-    preferredColors: string;
-    typographyStyle: string;
-    designStyle: string;
-    contentStyle: string;
-    exampleBrands: string;
-  };
-  socialMedia: {
-    instagramUsername: string;
+  platforms: {
+    selectedPlatforms: string[];
     mainPlatform: string;
+    instagramUsername: string;
     marketingGoals: string[];
     contentTypes: string[];
     postingFrequency: string;
   };
+}
+
+// ─── Credits ─────────────────────────────────────────────────────────────────
+
+export interface CreditTransaction {
+  id: string;
+  amount: number;
+  type: string;
+  description: string | null;
+  createdAt: Date;
 }
 
 // ─── API Responses ───────────────────────────────────────────────────────────

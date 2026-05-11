@@ -6,7 +6,7 @@ import { extractTextFromBuffer } from "@/lib/ai/pdf-processor";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
-import type { OnboardingData } from "@/types";
+import type { OnboardingData, BrandExtraction } from "@/types";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -17,11 +17,13 @@ export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
     const rawData = formData.get("data") as string;
+    const rawExtraction = formData.get("extraction") as string | null;
     const files = formData.getAll("files") as File[];
 
     const data: OnboardingData = JSON.parse(rawData);
+    const extraction: BrandExtraction | null = rawExtraction ? JSON.parse(rawExtraction) : null;
 
-    // Create slug from brand name
+    // Build slug from brand name
     const slug =
       data.brandInfo.name
         .toLowerCase()
@@ -31,43 +33,50 @@ export async function POST(req: NextRequest) {
       "-" +
       uuidv4().slice(0, 8);
 
+    // Determine primary platform
+    const mainPlatform =
+      data.platforms.mainPlatform ||
+      data.platforms.selectedPlatforms[0] ||
+      "instagram";
+
+    // Merge color extraction into preferredColors
+    const preferredColors = extraction?.colors.map((c) => c.hex) ?? [];
+    const designStyle = extraction?.designStyle || null;
+    const typographyStyle = extraction?.typography?.primaryFont || null;
+
     // Create brand record
     const brand = await prisma.brand.create({
       data: {
         userId: session.user.id,
         name: data.brandInfo.name,
         slug,
-        industry: data.brandInfo.industry,
-        country: data.brandInfo.country,
-        description: data.brandInfo.description,
-        targetAudience: data.brandInfo.targetAudience,
+        industry: data.brandInfo.industry || null,
+        country: data.brandInfo.country || null,
+        description: data.brandInfo.description || null,
+        targetAudience: data.brandInfo.targetAudience || null,
         competitors: data.brandInfo.competitors
           ? data.brandInfo.competitors.split(",").map((s) => s.trim()).filter(Boolean)
           : [],
-        personality: data.brandInfo.personality,
-        toneOfVoice: data.brandInfo.toneOfVoice,
-        mission: data.brandInfo.mission,
-        vision: data.brandInfo.vision,
-        instagramUsername: data.socialMedia.instagramUsername,
-        mainPlatform: data.socialMedia.mainPlatform,
-        marketingGoals: data.socialMedia.marketingGoals,
-        contentTypes: data.socialMedia.contentTypes,
-        postingFrequency: data.socialMedia.postingFrequency,
-        preferredColors: data.visualIdentity.preferredColors
-          ? data.visualIdentity.preferredColors.split(",").map((s) => s.trim()).filter(Boolean)
-          : [],
-        typographyStyle: data.visualIdentity.typographyStyle,
-        designStyle: data.visualIdentity.designStyle,
-        contentStyle: data.visualIdentity.contentStyle,
-        exampleBrands: data.visualIdentity.exampleBrands
-          ? data.visualIdentity.exampleBrands.split(",").map((s) => s.trim()).filter(Boolean)
-          : [],
+        personality: data.brandInfo.personality.length > 0
+          ? data.brandInfo.personality
+          : (extraction?.personality ?? []),
+        toneOfVoice: data.brandInfo.toneOfVoice || extraction?.toneOfVoice || null,
+        instagramUsername: data.platforms.instagramUsername || null,
+        mainPlatform,
+        marketingGoals: data.platforms.marketingGoals,
+        contentTypes: data.platforms.contentTypes,
+        postingFrequency: data.platforms.postingFrequency || null,
+        preferredColors,
+        typographyStyle,
+        designStyle,
+        contentStyle: null,
+        exampleBrands: [],
         onboardingCompleted: true,
-        onboardingStep: 4,
+        onboardingStep: 3,
       },
     });
 
-    // Process and store uploaded files
+    // Store uploaded files
     const uploadDir = path.join(process.cwd(), "public", "uploads", brand.id);
     await mkdir(uploadDir, { recursive: true });
 
@@ -83,13 +92,12 @@ export async function POST(req: NextRequest) {
 
       const fileUrl = `/uploads/${brand.id}/${storedName}`;
 
-      // Extract text from PDF
       if (file.type === "application/pdf" && !pdfText) {
         try {
-          const extraction = await extractTextFromBuffer(buffer);
-          pdfText = extraction.text;
+          const result = await extractTextFromBuffer(buffer);
+          pdfText = result.text;
         } catch {
-          // PDF extraction failed — continue without it
+          // continue
         }
       }
 
@@ -115,48 +123,97 @@ export async function POST(req: NextRequest) {
       await prisma.brandAsset.createMany({ data: assetRecords });
     }
 
-    // Initialize Brand Brain record as pending
-    const brandBrainRecord = await prisma.brandBrain.create({
-      data: {
-        brandId: brand.id,
-        processingStatus: "processing",
-      },
-    });
-
-    // Build Brand Brain asynchronously (don't await — let it process in background)
-    buildBrandBrain({
-      pdfText: pdfText || undefined,
-      onboardingData: data,
-      brandName: data.brandInfo.name,
-    })
-      .then(async (extraction) => {
-        await prisma.brandBrain.update({
-          where: { id: brandBrainRecord.id },
-          data: {
-            extractedColors: extraction.extractedColors as object[],
-            typography: extraction.typography as object,
-            toneProfile: extraction.toneProfile as object,
-            logoUsageRules: extraction.logoUsageRules,
-            spacingRules: extraction.spacingRules,
-            designDirection: extraction.designDirection,
-            visualLanguage: extraction.visualLanguage,
-            brandPersonality: extraction.brandPersonality,
-            forbiddenUsages: extraction.forbiddenUsages,
-            communicationStyle: extraction.communicationStyle,
-            rawExtraction: extraction as object,
-            processingStatus: "completed",
+    // If we have an extraction already, create BrandBrain directly as completed.
+    // Otherwise, build it async in the background.
+    if (extraction && extraction.colors.length > 0) {
+      await prisma.brandBrain.create({
+        data: {
+          brandId: brand.id,
+          extractedColors: extraction.colors as object[],
+          typography: (extraction.typography as object) ?? {},
+          toneProfile: {
+            primary: data.brandInfo.toneOfVoice || extraction.toneOfVoice || "",
+            adjectives: extraction.personality,
+            doList: [],
+            dontList: [],
+            examplePhrases: [],
+            communicationStyle: extraction.toneOfVoice || "",
           },
-        });
-      })
-      .catch(async (error) => {
-        await prisma.brandBrain.update({
-          where: { id: brandBrainRecord.id },
-          data: {
-            processingStatus: "failed",
-            processingError: error.message,
-          },
-        });
+          logoUsageRules: [],
+          spacingRules: [],
+          designDirection: extraction.designStyle || "",
+          visualLanguage: extraction.designStyle || "",
+          brandPersonality: extraction.personality,
+          forbiddenUsages: [],
+          communicationStyle: extraction.toneOfVoice || "",
+          rawExtraction: extraction as object,
+          processingStatus: "completed",
+        },
       });
+    } else {
+      // Fallback: async brand brain build
+      const brandBrainRecord = await prisma.brandBrain.create({
+        data: { brandId: brand.id, processingStatus: "processing" },
+      });
+
+      buildBrandBrain({
+        pdfText: pdfText || undefined,
+        context: {
+          brandName: data.brandInfo.name,
+          industry: data.brandInfo.industry,
+          country: data.brandInfo.country,
+          description: data.brandInfo.description,
+          targetAudience: data.brandInfo.targetAudience,
+          competitors: data.brandInfo.competitors,
+          personality: data.brandInfo.personality,
+          toneOfVoice: data.brandInfo.toneOfVoice,
+          preferredColors: preferredColors.join(", "),
+          typographyStyle: typographyStyle || undefined,
+          designStyle: designStyle || undefined,
+          mainPlatform,
+          marketingGoals: data.platforms.marketingGoals,
+          contentTypes: data.platforms.contentTypes,
+          postingFrequency: data.platforms.postingFrequency,
+        },
+      })
+        .then(async (result) => {
+          await prisma.brandBrain.update({
+            where: { id: brandBrainRecord.id },
+            data: {
+              extractedColors: result.extractedColors as object[],
+              typography: result.typography as object,
+              toneProfile: result.toneProfile as object,
+              logoUsageRules: result.logoUsageRules,
+              spacingRules: result.spacingRules,
+              designDirection: result.designDirection,
+              visualLanguage: result.visualLanguage,
+              brandPersonality: result.brandPersonality,
+              forbiddenUsages: result.forbiddenUsages,
+              communicationStyle: result.communicationStyle,
+              rawExtraction: result as object,
+              processingStatus: "completed",
+            },
+          });
+        })
+        .catch(async (err) => {
+          await prisma.brandBrain.update({
+            where: { id: brandBrainRecord.id },
+            data: { processingStatus: "failed", processingError: err.message },
+          });
+        });
+    }
+
+    // Grant initial trial credits record
+    await prisma.creditTransaction.create({
+      data: {
+        userId: session.user.id,
+        amount: 5000,
+        type: "trial_grant",
+        description: "Free trial credits on brand setup",
+      },
+    }).catch(() => {
+      // Non-fatal — credits already set in User.credits default
+    });
 
     return NextResponse.json({
       success: true,

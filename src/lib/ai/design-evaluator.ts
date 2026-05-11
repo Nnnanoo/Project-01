@@ -1,5 +1,5 @@
 import { getOpenAI, GPT4O } from "./openai-client";
-import type { BrandBrain, PostType } from "@/types";
+import type { BrandBrain } from "@/types";
 
 export interface EvaluationResult {
   overallScore: number;
@@ -28,15 +28,30 @@ Your evaluations are:
 - Focused on brand alignment AND design quality equally
 - Constructive even when critical`;
 
+const PLATFORM_CONTEXT: Record<string, string> = {
+  instagram:
+    "Instagram — prioritize visual impact, thumb-stopping quality, color harmony, and aesthetic appeal. Consider feed grid coherence, story format ratios, and Gen Z/Millennial taste.",
+  linkedin:
+    "LinkedIn — prioritize professionalism, readability at desktop size, thought leadership positioning, and credibility signals. Avoid overly casual design elements.",
+  twitter:
+    "X / Twitter — prioritize clarity, text readability at small sizes, immediate visual impact, and concise message delivery. The design must work at thumbnail scale.",
+  facebook:
+    "Facebook — balance visual appeal with information clarity for a broad, diverse audience. Consider both mobile and desktop viewing contexts.",
+  tiktok:
+    "TikTok — prioritize energy, trend alignment, bold visuals, and Gen-Z appeal. The design should feel native to a fast-scrolling, entertainment-first environment.",
+};
+
 export async function evaluateDesign(
   imageBase64: string,
   brandBrain: BrandBrain | null,
-  postType: PostType,
-  brandName: string
+  postType: string,
+  brandName: string,
+  platform: string = "instagram"
 ): Promise<EvaluationResult> {
   const openai = getOpenAI();
 
   const brandContext = buildBrandContext(brandBrain, brandName);
+  const platformContext = PLATFORM_CONTEXT[platform] || PLATFORM_CONTEXT.instagram;
   const mimeType = imageBase64.startsWith("data:image/png") ? "image/png" : "image/jpeg";
 
   const response = await openai.chat.completions.create({
@@ -52,6 +67,9 @@ export async function evaluateDesign(
           {
             type: "text",
             text: `Evaluate this ${postType.replace(/_/g, " ")} for the brand "${brandName}".
+
+PLATFORM CONTEXT:
+${platformContext}
 
 BRAND PROFILE:
 ${brandContext}

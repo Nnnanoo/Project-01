@@ -5,8 +5,6 @@ import { evaluateDesign } from "@/lib/ai/design-evaluator";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
-import type { PostType } from "@/types";
-
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -16,7 +14,8 @@ export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
     const brandId = formData.get("brandId") as string;
-    const postType = formData.get("postType") as PostType;
+    const postType = (formData.get("postType") as string) || "instagram_post";
+    const platform = (formData.get("platform") as string) || "instagram";
     const imageFile = formData.get("image") as File;
 
     if (!brandId || !imageFile) {
@@ -49,15 +48,17 @@ export async function POST(req: NextRequest) {
     const result = await evaluateDesign(
       base64,
       brand.brandBrain as Parameters<typeof evaluateDesign>[1],
-      postType || "instagram_post",
-      brand.name
+      postType,
+      brand.name,
+      platform
     );
 
     // Store evaluation in DB
     const evaluation = await prisma.evaluation.create({
       data: {
         brandId,
-        postType: postType || "instagram_post",
+        postType,
+        platform,
         imageUrl,
         overallScore: result.overallScore,
         brandConsistency: result.brandConsistency,

@@ -6,7 +6,7 @@ import { useDropzone } from "react-dropzone";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Sparkles, Star, CheckCircle, XCircle,
-  Lightbulb, TrendingUp, Image as ImageIcon,
+  Lightbulb, TrendingUp, Image as ImageIcon, Globe,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,15 +23,44 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import type { PostType } from "@/types";
+import type { Platform, PostType } from "@/types";
 
-const POST_TYPES: { value: PostType; label: string }[] = [
-  { value: "instagram_post", label: "Instagram Post" },
-  { value: "carousel", label: "Carousel" },
-  { value: "story", label: "Story" },
-  { value: "reel_cover", label: "Reel Cover" },
-  { value: "ad_creative", label: "Ad Creative" },
+const PLATFORMS: { value: Platform; label: string; emoji: string }[] = [
+  { value: "instagram", label: "Instagram", emoji: "📸" },
+  { value: "linkedin", label: "LinkedIn", emoji: "💼" },
+  { value: "twitter", label: "X / Twitter", emoji: "🐦" },
+  { value: "facebook", label: "Facebook", emoji: "📘" },
+  { value: "tiktok", label: "TikTok", emoji: "🎵" },
 ];
+
+const POST_TYPES_BY_PLATFORM: Record<Platform, { value: string; label: string }[]> = {
+  instagram: [
+    { value: "instagram_post", label: "Post" },
+    { value: "carousel", label: "Carousel" },
+    { value: "story", label: "Story" },
+    { value: "reel_cover", label: "Reel Cover" },
+    { value: "ad_creative", label: "Ad Creative" },
+  ],
+  linkedin: [
+    { value: "single_image", label: "Single Image Post" },
+    { value: "carousel", label: "Carousel / Document" },
+    { value: "ad_creative", label: "Ad Creative" },
+  ],
+  twitter: [
+    { value: "single_image", label: "Image Post" },
+    { value: "ad_creative", label: "Ad Creative" },
+  ],
+  facebook: [
+    { value: "instagram_post", label: "Post" },
+    { value: "story", label: "Story" },
+    { value: "ad_creative", label: "Ad Creative" },
+    { value: "cover_photo", label: "Cover Photo" },
+  ],
+  tiktok: [
+    { value: "video_thumbnail", label: "Video Thumbnail" },
+    { value: "ad_creative", label: "Ad Creative" },
+  ],
+};
 
 const SCORE_METRICS = [
   { key: "brandConsistency", label: "Brand Consistency" },
@@ -76,6 +105,7 @@ interface Props {
 
 export function EvaluateClient({ brands, recentEvaluations }: Props) {
   const [selectedBrand, setSelectedBrand] = useState(brands[0]?.id || "");
+  const [platform, setPlatform] = useState<Platform>("instagram");
   const [postType, setPostType] = useState<PostType>("instagram_post");
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -108,6 +138,7 @@ export function EvaluateClient({ brands, recentEvaluations }: Props) {
       const formData = new FormData();
       formData.append("brandId", selectedBrand);
       formData.append("postType", postType);
+      formData.append("platform", platform);
       formData.append("image", file);
 
       const res = await fetch("/api/evaluate", { method: "POST", body: formData });
@@ -151,15 +182,44 @@ export function EvaluateClient({ brands, recentEvaluations }: Props) {
                 </Select>
               </div>
 
+              {/* Platform selector */}
+              <div className="space-y-1.5">
+                <label className="text-xs text-muted-foreground flex items-center gap-1.5">
+                  <Globe className="w-3 h-3" /> Platform
+                </label>
+                <div className="grid grid-cols-5 gap-1">
+                  {PLATFORMS.map((p) => (
+                    <button
+                      key={p.value}
+                      type="button"
+                      onClick={() => {
+                        setPlatform(p.value);
+                        const firstType = POST_TYPES_BY_PLATFORM[p.value][0]?.value || "instagram_post";
+                        setPostType(firstType as PostType);
+                      }}
+                      title={p.label}
+                      className={cn(
+                        "flex items-center justify-center py-2 rounded-lg border text-base transition-all",
+                        platform === p.value
+                          ? "border-primary/40 bg-primary/10"
+                          : "border-border hover:border-border/80 hover:bg-muted/40"
+                      )}
+                    >
+                      {p.emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Post type */}
               <div className="space-y-1.5">
-                <label className="text-xs text-muted-foreground">Post Type</label>
+                <label className="text-xs text-muted-foreground">Content Type</label>
                 <Select value={postType} onValueChange={(v) => setPostType(v as PostType)}>
                   <SelectTrigger className="h-9">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {POST_TYPES.map((t) => (
+                    {POST_TYPES_BY_PLATFORM[platform].map((t) => (
                       <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
                     ))}
                   </SelectContent>

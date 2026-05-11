@@ -58,7 +58,7 @@ export default function RegisterPage() {
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center">
             <Sparkles className="w-4 h-4 text-white" />
           </div>
-          <span className="text-xl font-bold">Afloatter</span>
+          <span className="text-xl font-bold">Whisperly</span>
         </div>
         <h1 className="text-2xl font-bold tracking-tight">Create your workspace</h1>
         <p className="text-muted-foreground text-sm mt-1">
